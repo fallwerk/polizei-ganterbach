@@ -49,7 +49,7 @@ async function send(){
   add("Du: " + text, "");
   input.value = "";
 
-  const r = await fetch("https://api.openai.com/v1/chat/completions",{
+  const r = await fetch("https://plain-sea-bb50.fallwerk-krimi.workers.dev/",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
