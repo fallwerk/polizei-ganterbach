@@ -10,6 +10,7 @@ body { font-family: Arial; background:#111; color:#eee; padding:20px; }
 .msg { margin:10px 0; }
 .polizei { color:#9ddcff; }
 button { padding:10px; margin-top:10px; }
+input { width:100%; padding:10px; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -21,12 +22,13 @@ button { padding:10px; margin-top:10px; }
   <input id="input" placeholder="Ihre Frage an die Polizei">
   <button onclick="send()">Senden</button>
   <button onclick="playVoice()">🔊 Antwort anhören</button>
-
   <button onclick="speak()">🎤 Sprechen</button>
 </div>
 
 <script>
 const messages = document.getElementById("messages");
+const input = document.getElementById("input");
+let lastPoliceText = "";
 
 function add(text, cls){
   const d = document.createElement("div");
@@ -35,19 +37,15 @@ function add(text, cls){
   messages.appendChild(d);
   messages.scrollTop = messages.scrollHeight;
 
-  if(cls==="polizei"){
-  window.lastPoliceText = text;
-
-async function send()function playVoice(){
-  if(!window.lastPoliceText) return;
-  const u = new SpeechSynthesisUtterance(window.lastPoliceText);
-  u.lang = "de-DE";
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  if(cls === "polizei"){
+    lastPoliceText = text;
+  }
 }
-{
-  const text = input.value;
+
+async function send(){
+  const text = input.value.trim();
   if(!text) return;
+
   add("Du: " + text, "");
   input.value = "";
 
@@ -60,53 +58,48 @@ async function send()function playVoice(){
     body:JSON.stringify({
       model:"gpt-4o-mini",
       messages:[
-        {role:"system", content:"Du bist Polizeihauptmeister Daniel Rieder von der Polizei Ganterbach.
+        {
+          role:"system",
+          content:`Du bist Polizeihauptmeister Daniel Rieder von der Polizei Ganterbach.
 
-WICHTIG:
-Du befindest dich in PHASE 1 eines Kriminalfalls.
-
-Regeln für Phase 1:
-- Du gibst nur allgemeine, öffentlich bekannte Informationen.
-- Du nennst keine Täter, Verdächtigen oder konkreten Motive.
-- Du analysierst keine Beweise.
-- Du spekulierst nicht.
-- Du verweist häufig auf laufende Ermittlungen oder fehlende Zuständigkeit.
-- Du hilfst höflich, aber zurückhaltend.
-- Wenn Fragen zu konkret werden, blockst du freundlich ab.
-
-Stil:
-- realistisch
-- sachlich
-- kurze Antworten
-- Polizeiton, kein Rollenspiel-Übertreiben
-
-Typische Formulierungen:
-- „Dazu kann ich derzeit nichts sagen.“
-- „Das ist Teil der laufenden Ermittlungen. Ich war am Anfang da, und hab euch alles Fundstücke zugefügt.“
-- „Mehr liegt uns aktuell nicht vor.“
-- „Für Details wenden Sie sich bitte an meinen Boss, aber der ist am Gerundensee am Karpfen fischen“
-
-Du weißt nur, was die Polizei zu Beginn eines Falls offiziell weiß.
-"},
-        {role:"user", content:text}
+PHASE 1:
+- Nur allgemeine Infos
+- Keine Täter
+- Keine Analyse
+- Freundlich, aber zurückhaltend
+- Oft auf laufende Ermittlungen verweisen`
+        },
+        { role:"user", content:text }
       ]
     })
   });
+
   const j = await r.json();
   add("Weber: " + j.choices[0].message.content, "polizei");
 }
 
+function playVoice(){
+  if(!lastPoliceText) return;
+  const u = new SpeechSynthesisUtterance(lastPoliceText);
+  u.lang = "de-DE";
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
 function speak(){
+  if(!("webkitSpeechRecognition" in window)){
+    alert("Spracherkennung wird von diesem Browser nicht unterstützt.");
+    return;
+  }
   const rec = new webkitSpeechRecognition();
-  rec.lang="de-DE";
+  rec.lang = "de-DE";
   rec.start();
   rec.onresult = e => {
     input.value = e.results[0][0].transcript;
     send();
-  }
+  };
 }
 </script>
 
 </body>
 </html>
-
