@@ -2,17 +2,46 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Polizei Ganterbach</title>
+<title>📞 Polizei Ganterbach</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body { font-family: Arial; background:#111; color:#eee; padding:20px; }
-#chat { max-width:600px; margin:auto; }
-.msg { margin:10px 0; }
-.polizei { color:#9ddcff; }
-button { padding:10px; margin-top:10px; }
-input { width:100%; padding:10px; margin-top:10px; }
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #eee;
+  padding: 20px;
+}
+
+#chat {
+  max-width: 600px;
+  margin: auto;
+}
+
+.msg {
+  margin: 10px 0;
+}
+
+.polizei {
+  color: #9ddcff;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  box-sizing: border-box;
+}
+
+button {
+  padding: 10px;
+  margin-top: 10px;
+  margin-right: 5px;
+  cursor: pointer;
+}
 </style>
 </head>
+
 <body>
 
 <div id="chat">
@@ -32,7 +61,7 @@ let lastPoliceText = "";
 
 function add(text, cls){
   const d = document.createElement("div");
-  d.className = "msg " + cls;
+  d.className = "msg " + (cls || "");
   d.innerText = text;
   messages.appendChild(d);
   messages.scrollTop = messages.scrollHeight;
@@ -46,36 +75,50 @@ async function send(){
   const text = input.value.trim();
   if(!text) return;
 
-  add("Du: " + text, "");
+  add("Du: " + text);
   input.value = "";
 
-  const r = await fetch("https://plain-sea-bb50.fallwerk-krimi.workers.dev/",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer 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"
-    },
-    body:JSON.stringify({
-      model:"gpt-4o-mini",
-      messages:[
-        {
-          role:"system",
-          content:`Du bist Polizeihauptmeister Daniel Rieder von der Polizei Ganterbach.
+  try {
+    const r = await fetch(
+      "https://plain-sea-bb50.fallwerk-krimi.workers.dev/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "system",
+              content: `Du bist Polizeihauptmeister Daniel Rieder von der Polizei Ganterbach.
 
 PHASE 1:
-- Nur allgemeine Infos
-- Keine Täter
+- Nur allgemeine Informationen
+- Keine Täter benennen
 - Keine Analyse
 - Freundlich, aber zurückhaltend
-- Oft auf laufende Ermittlungen verweisen`
-        },
-        { role:"user", content:text }
-      ]
-    })
-  });
+- Häufig auf laufende Ermittlungen verweisen`
+            },
+            {
+              role: "user",
+              content: text
+            }
+          ]
+        })
+      }
+    );
 
-  const j = await r.json();
-  add("Weber: " + j.choices[0].message.content, "polizei");
+    if (!r.ok) {
+      add("❌ Fehler beim Server (" + r.status + ")", "polizei");
+      return;
+    }
+
+    const j = await r.json();
+    add("Weber: " + j.choices[0].message.content, "polizei");
+
+  } catch (e) {
+    add("❌ Verbindung fehlgeschlagen", "polizei");
+  }
 }
 
 function playVoice(){
@@ -95,11 +138,4 @@ function speak(){
   rec.lang = "de-DE";
   rec.start();
   rec.onresult = e => {
-    input.value = e.results[0][0].transcript;
-    send();
-  };
-}
-</script>
-
-</body>
-</html>
+    input.value = e.re
