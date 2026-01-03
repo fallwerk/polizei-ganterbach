@@ -1,1 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Polizei Ganterbach</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { font-family: Arial; background:#111; color:#eee; padding:20px; }
+#chat { max-width:600px; margin:auto; }
+.msg { margin:10px 0; }
+.polizei { color:#9ddcff; }
+button { padding:10px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div id="chat">
+  <h2>📞 Polizei Ganterbach</h2>
+  <div id="messages"></div>
+
+  <input id="input" placeholder="Ihre Frage an die Polizei">
+  <button onclick="send()">Senden</button>
+  <button onclick="speak()">🎤 Sprechen</button>
+</div>
+
+<script>
+const messages = document.getElementById("messages");
+
+function add(text, cls){
+  const d = document.createElement("div");
+  d.className = "msg " + cls;
+  d.innerText = text;
+  messages.appendChild(d);
+  messages.scrollTop = messages.scrollHeight;
+
+  if(cls==="polizei"){
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "de-DE";
+    speechSynthesis.speak(u);
+  }
+}
+
+async function send(){
+  const text = input.value;
+  if(!text) return;
+  add("Du: " + text, "");
+  input.value = "";
+
+  const r = await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer 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"
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {role:"system", content:"Du bist Polizeihauptmeister Rieder von der Polizei Ganterbach..."},
+        {role:"user", content:text}
+      ]
+    })
+  });
+  const j = await r.json();
+  add("Weber: " + j.choices[0].message.content, "polizei");
+}
+
+function speak(){
+  const rec = new webkitSpeechRecognition();
+  rec.lang="de-DE";
+  rec.start();
+  rec.onresult = e => {
+    input.value = e.results[0][0].transcript;
+    send();
+  }
+}
+</script>
+
+</body>
+</html>
 
