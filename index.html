@@ -90,7 +90,7 @@ async function send(){
           messages: [
             {
               role: "system",
-              content: `Du bist Polizeihauptmeister Daniel Rieder von der Polizei Ganterbach.
+              content: `Du bist Polizeihauptmeister Sepp Jordan von der Polizei Ganterbach.
 
 PHASE 1:
 - Nur allgemeine Informationen
@@ -114,7 +114,7 @@ PHASE 1:
     }
 
     const j = await r.json();
-    add("Weber: " + j.choices[0].message.content, "polizei");
+    add("Jordan: " + j.choices[0].message.content, "polizei");
 
   } catch (e) {
     add("❌ Verbindung fehlgeschlagen", "polizei");
