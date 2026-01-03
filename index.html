@@ -20,6 +20,8 @@ button { padding:10px; margin-top:10px; }
 
   <input id="input" placeholder="Ihre Frage an die Polizei">
   <button onclick="send()">Senden</button>
+  <button onclick="playVoice()">🔊 Antwort anhören</button>
+
   <button onclick="speak()">🎤 Sprechen</button>
 </div>
 
@@ -34,13 +36,16 @@ function add(text, cls){
   messages.scrollTop = messages.scrollHeight;
 
   if(cls==="polizei"){
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "de-DE";
-    speechSynthesis.speak(u);
-  }
-}
+  window.lastPoliceText = text;
 
-async function send(){
+async function send()function playVoice(){
+  if(!window.lastPoliceText) return;
+  const u = new SpeechSynthesisUtterance(window.lastPoliceText);
+  u.lang = "de-DE";
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+{
   const text = input.value;
   if(!text) return;
   add("Du: " + text, "");
