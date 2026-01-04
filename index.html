@@ -4,134 +4,174 @@
 <meta charset="UTF-8">
 <title>📞 Polizei Ganterbach</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body { font-family: Arial, sans-serif; background:#111; color:#eee; padding:20px; }
-#chat { max-width:600px; margin:auto; }
-.msg { margin:10px 0; }
-.polizei { color:#9ddcff; }
-button { padding:10px; margin-top:10px; }
-input { width:100%; padding:10px; margin-top:10px; }
+body {
+  background:#222;
+  font-family: -apple-system, BlinkMacSystemFont, Arial;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.phone {
+  width:360px;
+  height:640px;
+  background:#000;
+  border-radius:30px;
+  box-shadow:0 0 40px #000;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.header {
+  padding:15px;
+  text-align:center;
+  background:#111;
+  color:#9ddcff;
+  font-weight:bold;
+}
+
+.chat {
+  flex:1;
+  padding:10px;
+  overflow-y:auto;
+  background:#0d0d0d;
+}
+
+.msg {
+  max-width:80%;
+  padding:10px;
+  margin:8px 0;
+  border-radius:12px;
+  font-size:14px;
+}
+
+.user {
+  background:#1e90ff;
+  color:white;
+  margin-left:auto;
+  border-bottom-right-radius:0;
+}
+
+.polizei {
+  background:#222;
+  color:#9ddcff;
+  border-bottom-left-radius:0;
+}
+
+.input {
+  display:flex;
+  padding:10px;
+  background:#111;
+}
+
+input {
+  flex:1;
+  padding:10px;
+  border-radius:20px;
+  border:none;
+}
+
+button {
+  margin-left:6px;
+  border-radius:50%;
+  border:none;
+  padding:10px;
+}
 </style>
 </head>
+
 <body>
-<div id="chat">
-  <h2>📞 Polizei Ganterbach</h2>
-  <div id="messages"></div>
-  <input id="input" placeholder="Ihre Frage an die Polizei">
-  <button onclick="send()">Senden</button>
-  <button onclick="playVoice()">🔊 Antwort anhören</button>
-  <button onclick="speak()">🎤 Sprechen</button>
+
+<div class="phone">
+  <div class="header">📞 Polizei Ganterbach</div>
+  <div id="chat" class="chat"></div>
+  <div class="input">
+    <input id="input" placeholder="Nachricht schreiben…">
+    <button onclick="send()">➤</button>
+    <button onclick="playVoice()">🔊</button>
+  </div>
 </div>
 
 <script>
-const messages = document.getElementById("messages");
+const chat = document.getElementById("chat");
 const input = document.getElementById("input");
-let chatHistory = [];
+let history = [];
 let lastPoliceText = "";
 
-// Nachrichten ins Chatfenster
 function add(text, cls){
   const d = document.createElement("div");
-  d.className = "msg " + (cls || "");
+  d.className = "msg " + cls;
   d.innerText = text;
-  messages.appendChild(d);
-  messages.scrollTop = messages.scrollHeight;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
   if(cls === "polizei") lastPoliceText = text;
 }
 
-// Krimi-spezifische Logik
-function handleCrimeQuestions(userText) {
-  const lower = userText.toLowerCase();
+// KRIMI-LOGIK
+function crimeResponse(q){
+  const t = q.toLowerCase();
 
-  // Passwort
-  if(lower.includes("passwort")) {
-    return "Schau am besten ins FAQ der Regionalpolizei-Website, da findet man solche Infos.";
+  if(t.includes("passwort")){
+    return "Oh! schon wieder haben Sie das vergessen.... Schauen Sie sich doch mal das FAQ der Regionalpolizei-Webseite. Da steht oft mehr, als man denkt.";
   }
 
-  // Verdächtige oder Hinweise
-  if(lower.includes("verdächtige") || lower.includes("beweise") || lower.includes("tatzeit")) {
-    return "Die Unterlagen und Verhöre findest du auf der Regionalpolizei-Website. Aber Vorsicht: nicht jeder Hinweis ist so harmlos wie ein Walliser Käse!";
+  if(t.includes("verdächtig") || t.includes("beweise") || t.includes("tatzeit")){
+    return "Alle Personen waren zur Tatzeit auf dem Campingplatz. Aussagen und Verhöre finden Sie online. Und glauben Sie mir: Im Wallis ist nicht jeder ruhig, nur weil die Berge still sind.";
   }
 
-  // Wallis Humor
-  const wallisJokes = [
-    "Im Wallis ist sogar der Berg sicherer als manche Camper…",
-    "Wer die Alpen liebt, hat manchmal mehr mit Kühen als mit Kriminellen zu tun!",
-    "Die Sonne brennt hier so stark, dass selbst Hinweise manchmal schmelzen…",
-    "Zwischen Matterhorn und Mordfall – so ist das Leben in den Bergen!"
+  const jokes = [
+    "Im Wallis hört man nachts alles. Auch Dinge, die man lieber nicht hören möchte.",
+    "Die Berge sind ruhig – Menschen weniger.",
+    "Hier oben verläuft sich nicht nur der Nebel.",
+    "Ein Mordfall zwischen Kühen und Campingstühlen… glauben Sie mir, ich hätte mir auch einen ruhigeren Dienst gewünscht."
   ];
-  const joke = wallisJokes[Math.floor(Math.random() * wallisJokes.length)];
 
-  return `Ernsthaft: ${joke}`;
+  return jokes[Math.floor(Math.random()*jokes.length)];
 }
 
-// Nachricht an Worker/ChatGPT senden
 async function send(){
   const text = input.value.trim();
   if(!text) return;
-  add("Du: " + text);
-  input.value = "";
-  chatHistory.push({role:"user", content:text});
+  input.value="";
+  add(text,"user");
+  history.push({role:"user",content:text});
 
-  // Wenn Krimi-spezifisch
-  let responseText;
-  const isCrimeQuestion = /camping|mord|ganterbach|verdächtige|beweise|tatzeit|passwort/i.test(text);
+  let answer;
 
-  if(isCrimeQuestion){
-    responseText = handleCrimeQuestions(text);
+  if(/camping|mord|ganterbach|verdächtig|beweis|tat|passwort/i.test(text)){
+    answer = crimeResponse(text);
   } else {
-    // ChatGPT Worker Anfrage
     try {
       const r = await fetch("https://plain-sea-bb50.fallwerk-krimi.workers.dev/",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          model:"gpt-4o-mini",
-          messages: chatHistory
-        })
+        body:JSON.stringify({messages:history})
       });
-      if(!r.ok){ responseText = "❌ Fehler bei ChatGPT ("+r.status+")"; }
-      else {
-        const j = await r.json();
-        responseText = j.choices[0].message.content;
-      }
-    } catch(e){
-      responseText = "❌ Verbindung fehlgeschlagen";
+      const j = await r.json();
+      answer = j.choices[0].message.content;
+    } catch {
+      answer = "Verbindung fehlgeschlagen. Funkloch im Tal… kommt vor.";
     }
   }
 
-  add("Jordan: " + responseText, "polizei");
-  chatHistory.push({role:"assistant", content: responseText});
+  add(answer,"polizei");
+  history.push({role:"assistant",content:answer});
 }
 
-// iOS-optimierte Stimme
-function playVoice() {
-  if (!lastPoliceText) return;
-
-  const utter = new SpeechSynthesisUtterance(lastPoliceText);
-  utter.lang = "de-DE";
-  utter.pitch = 0.6;
-  utter.rate = 0.85;
-  utter.volume = 1;
-
+// iOS Stimme
+function playVoice(){
+  if(!lastPoliceText) return;
+  const u = new SpeechSynthesisUtterance(lastPoliceText);
+  u.lang="de-DE";
+  u.pitch=0.6;
+  u.rate=0.85;
   speechSynthesis.cancel();
-  speechSynthesis.speak(utter);
-}
-
-// Spracheingabe
-function speak(){
-  if(!("webkitSpeechRecognition" in window)){
-    alert("Spracherkennung wird nicht unterstützt.");
-    return;
-  }
-  const r=new webkitSpeechRecognition();
-  r.lang="de-DE";
-  r.start();
-  r.onresult=e=>{
-    input.value=e.results[0][0].transcript;
-    send();
-  };
+  speechSynthesis.speak(u);
 }
 </script>
+
 </body>
 </html>
