@@ -38,32 +38,48 @@ function add(text, cls){
   if(cls === "polizei") lastPoliceText = text;
 }
 
-// Nachricht senden an Worker
-async function send(){
+// Witziger Polizist: Antworten generieren
+function generateFunnyResponse(userText) {
+  const lower = userText.toLowerCase();
+
+  // Beispielhafte Kategorien
+  if (lower.includes("pizza") || lower.includes("essen")) {
+    return "Als Polizist kann ich leider nicht zum Pizzaessen kommen, aber ich empfehle die Margherita – sauber, klassisch, zuverlässig!";
+  }
+  if (lower.includes("tanz") || lower.includes("party")) {
+    return "Tanzen? Ich habe nur Zeit für Sirenen-Tanz, sehr rhythmisch!";
+  }
+  if (lower.includes("hund")) {
+    return "wir haben leider keinen Hund mehr auf Streife";
+  }
+  if (lower.includes("katze")) {
+    return "Katzen sind schwer zu kontrollieren, da lasse ich lieber die Profis ran.";
+  }
+  if (lower.includes("urlaub")) {
+    return "Urlaub? Haha, brauch ich nicht, arbeite ja schon im Wallis !";
+  }
+
+  // Standard-Polizei-Antwort
+  const funnyReplies = [
+    "Ich notiere das mal in meinem Notizbuch.",
+    "Achtung, das klingt nach einem ganz verzwickten Fall",
+    "Interessant… das könnte sogar die Polizei von Bern interessieren.",
+    "Ich muss Sie leider verwarnen: zu viel Humor, kommt nur im Film bei "Tschugger" gut an.",
+    "Das werde ich an meinen Kollegen melden… der Kaffee ist eh alle."
+  ];
+  return funnyReplies[Math.floor(Math.random() * funnyReplies.length)];
+}
+
+// Nachricht senden
+function send(){
   const text = input.value.trim();
   if(!text) return;
   add("Du: " + text);
   input.value = "";
-  try {
-    const r = await fetch(
-      "https://plain-sea-bb50.fallwerk-krimi.workers.dev/",
-      {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body:JSON.stringify({
-          messages:[
-            {role:"system", content:`Du bist Polizeihauptmeister Sepp Jordan.`},
-            {role:"user", content:text}
-          ]
-        })
-      }
-    );
-    if(!r.ok){ add("❌ Fehler ("+r.status+")","polizei"); return; }
-    const j = await r.json();
-    add("" + j.choices[0].message.content,"polizei");
-  } catch(e){
-    add("❌ Verbindung fehlgeschlagen","polizei");
-  }
+
+  // Witzige Antwort generieren
+  const response = generateFunnyResponse(text);
+  add("" + response,"polizei");
 }
 
 // iOS-optimierte Stimme
