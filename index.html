@@ -22,10 +22,13 @@ input { width:100%; padding:10px; margin-top:10px; }
   <button onclick="playVoice()">🔊 Antwort anhören</button>
   <button onclick="speak()">🎤 Sprechen</button>
 </div>
+
 <script>
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
 let lastPoliceText = "";
+
+// Nachricht hinzufügen
 function add(text, cls){
   const d = document.createElement("div");
   d.className = "msg " + (cls || "");
@@ -34,6 +37,8 @@ function add(text, cls){
   messages.scrollTop = messages.scrollHeight;
   if(cls === "polizei") lastPoliceText = text;
 }
+
+// Nachricht senden
 async function send(){
   const text = input.value.trim();
   if(!text) return;
@@ -60,13 +65,45 @@ async function send(){
     add("❌ Verbindung fehlgeschlagen","polizei");
   }
 }
-function playVoice(){
-  if(!lastPoliceText) return;
-  const u=new SpeechSynthesisUtterance(lastPoliceText);
-  u.lang="de-DE";
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+
+// Neue Version: Deutsche männliche Stimme, natürlicher Klang
+function playVoice() {
+  if (!lastPoliceText) return;
+
+  const utter = new SpeechSynthesisUtterance(lastPoliceText);
+  utter.lang = "de-DE";
+
+  const speakWithVoice = () => {
+    const voices = speechSynthesis.getVoices();
+
+    // Männliche deutsche Stimme bevorzugen
+    let voice = voices.find(v =>
+      v.lang === "de-DE" && v.name.toLowerCase().includes("male")
+    );
+
+    // Fallback: irgendeine deutsche Stimme
+    if (!voice) voice = voices.find(v => v.lang === "de-DE") || voices[0];
+
+    utter.voice = voice;
+
+    // Pitch & Rate für natürlicheren Klang
+    utter.pitch = 0.8; // tiefer
+    utter.rate = 0.95; // etwas langsamer
+    utter.volume = 1;
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  };
+
+  // Stimmen werden oft asynchron geladen
+  if (speechSynthesis.getVoices().length === 0) {
+    speechSynthesis.onvoiceschanged = () => speakWithVoice();
+  } else {
+    speakWithVoice();
+  }
 }
+
+// Spracheingabe
 function speak(){
   if(!("webkitSpeechRecognition" in window)){
     alert("Spracherkennung wird nicht unterstützt.");
@@ -81,5 +118,6 @@ function speak(){
   };
 }
 </script>
+
 </body>
 </html>
