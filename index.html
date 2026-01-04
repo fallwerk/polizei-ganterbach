@@ -4,116 +4,168 @@
 <meta charset="UTF-8">
 <title>📞 Polizei Ganterbach</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body { background:#222; font-family:-apple-system,BlinkMacSystemFont,Arial; display:flex; justify-content:center; padding:20px; }
-.phone { width:330px; height:580px; background:#000; border-radius:30px; box-shadow:0 0 40px #000; display:flex; flex-direction:column; overflow:hidden; }
+body { background:#222; font-family:-apple-system, BlinkMacSystemFont, Arial; display:flex; justify-content:center; padding:20px; }
+.phone { width:300px; height:580px; background:#000; border-radius:30px; box-shadow:0 0 40px #000; display:flex; flex-direction:column; overflow:hidden; }
 .header { padding:15px; text-align:center; background:#111; color:#9ddcff; font-weight:bold; }
 .chat { flex:1; padding:10px; overflow-y:auto; background:#0d0d0d; }
 .msg { max-width:80%; padding:10px; margin:8px 0; border-radius:12px; font-size:14px; }
-.user { background:#1e90ff; color:white; margin-left:auto; }
-.polizei { background:#222; color:#9ddcff; }
+.user { background:#1e90ff; color:white; margin-left:auto; border-bottom-right-radius:0; }
+.polizei { background:#222; color:#9ddcff; border-bottom-left-radius:0; }
 .input { display:flex; padding:10px; background:#111; }
 input { flex:1; padding:10px; border-radius:20px; border:none; }
 button { margin-left:6px; border-radius:50%; border:none; padding:10px; }
 </style>
 </head>
-
 <body>
+
 <div class="phone">
   <div class="header">📞 Polizei Ganterbach</div>
   <div id="chat" class="chat"></div>
   <div class="input">
     <input id="input" placeholder="Nachricht schreiben…">
     <button onclick="send()">➤</button>
-    <button onclick="playVoice()">🔊</button>
   </div>
 </div>
 
 <script>
-const chat=document.getElementById("chat");
-const input=document.getElementById("input");
-let lastPoliceText="";
-const askedQuestions={};
+// ------------------------------
+// Variablen
+// ------------------------------
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+let lastPoliceText = "";
 
-function add(text,cls){
-  const d=document.createElement("div");
-  d.className="msg "+cls;
-  d.innerText=text;
+const asked = { verdächtige:0, beweise:0, tatzeit:0, ort:0 };
+
+// ------------------------------
+// Hilfsfunktionen
+// ------------------------------
+function add(text, cls){
+  const d = document.createElement("div");
+  d.className = "msg "+cls;
+  d.innerText = text;
   chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
-  if(cls==="polizei") lastPoliceText=text;
+  chat.scrollTop = chat.scrollHeight;
+
+  if(cls === "polizei"){
+    lastPoliceText = text;
+    speakPolice(text); // automatisches Sprechen
+  }
 }
 
-const hints={
+// ------------------------------
+// Funkgeräusch
+// ------------------------------
+function playRadioStatic(){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const buffer = ctx.createBuffer(1, ctx.sampleRate*0.15, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<data.length;i++){ data[i]=(Math.random()*2-1)*0.4; }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.value = 1200;
+  source.connect(filter);
+  filter.connect(ctx.destination);
+  source.start();
+}
+
+// ------------------------------
+// Polizei Sprachausgabe (inkl. Flüstern)
+// ------------------------------
+function speakPolice(text){
+  const whisper = /unter uns|inoffiziell|vertraulich|zwischen uns|nicht offiziell/i.test(text);
+  playRadioStatic(); // Funkgeräusch
+  setTimeout(()=>{
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "de-DE";
+    if(whisper){ u.volume=0.35; u.rate=0.7; u.pitch=0.4; }
+    else{ u.volume=1; u.rate=0.85; u.pitch=0.6; }
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  },180);
+}
+
+// ------------------------------
+// Hinweise und Humor
+// ------------------------------
+const hints = {
   verdächtige:[
-    "Es waren auffällig viele Personen zur Tatzeit auf dem Platz.",
-    "Nicht jeder Camper war kooperativ.",
-    "Ein Verdächtiger behauptete, er sei bei einem Blinddate in Naters gewesen.",
-    "Schauen Sie besser in die Unterlagen – wir haben die nicht zum Spaß hochgeladen."
+    "Es waren mehrere Personen zur Tatzeit auf dem Campingplatz.",
+    "Nicht jeder, der etwas gesehen hat, sagt die Wahrheit.",
+    "Einige Aussagen widersprechen sich – das ist nie ein gutes Zeichen."
   ],
   beweise:[
-    "Beim Opfer lag ein persönliches Tagebuch.",
-    "Am Tatort wurde ungewöhnlich viel Müll gefunden.",
-    "Die Überwachungskameras waren leider außer Betrieb."
+    "Am Tatort wurden persönliche Gegenstände des Opfers gefunden.",
+    "Ein Tagebuch wirft mehr Fragen auf, als es beantwortet.",
+    "Manche Spuren wirken nebensächlich – sind es aber oft nicht."
   ],
   tatzeit:[
-    "Die Tat geschah vermutlich zwischen später Nachmittag und Abend.",
-    "Ein Fischer meldete am Morgen des 12. August 2025 den Fund.",
-    "Es war vermutlich bereits dunkel."
+    "Die Tat geschah zwischen spätem Nachmittag und früher Nacht.",
+    "Zu dieser Zeit waren noch einige Camper unterwegs.",
+    "Dunkel war es noch nicht ganz – das ist wichtig."
   ],
   ort:[
-    "Der Campingplatz Ganterbach – ruhig, abgelegen, trügerisch.",
-    "Einige Stellplätze waren leer.",
-    "Der Zeltplatz liegt etwa sieben Gehminuten entfernt."
+    "Der Campingplatz Ganterbach liegt ruhig, fast zu ruhig.",
+    "Der Tatort liegt etwas abseits der Hauptwege.",
+    "Nicht jeder Stellplatz war zur Tatzeit belegt."
   ]
 };
 
+const jokes = [
+  "Im Wallis sind die Berge still – aber die Menschen nicht.",
+  "Bei uns kennt jeder jeden… oder glaubt es zumindest.",
+  "Man sagt, die Bergluft klärt den Kopf – nicht immer die Aussagen.",
+  "Ein Mord zwischen Kühen und Zelten… das hatten wir auch noch nicht."
+];
+
+// ------------------------------
+// Antwortlogik
+// ------------------------------
 function crimeResponse(q){
-  const t=q.toLowerCase();
-  if(t.includes("passwort")) return "Dazu sage ich nichts. Lesen Sie das FAQ der Webseite – wir sind hier nicht beim Wunschkonzert.";
+  const t = q.toLowerCase();
 
-  let cat="";
-  if(t.includes("verdächtig")) cat="verdächtige";
-  else if(t.includes("beweis")) cat="beweise";
-  else if(t.includes("tatzeit")||t.includes("wann")) cat="tatzeit";
-  else if(t.includes("wo")||t.includes("ort")) cat="ort";
-
-  if(cat){
-    askedQuestions[cat]=askedQuestions[cat]||0;
-    const i=askedQuestions[cat];
-    const hint=hints[cat][i]||hints[cat][hints[cat].length-1];
-    askedQuestions[cat]=Math.min(i+1,hints[cat].length-1);
-
-    const jokes=[
-      "Im Wallis ist selbst der Nebel verdächtig.",
-      "Die Berge hören alles – sagen aber nichts.",
-      "Zwischen Kühen und Campern passieren seltsame Dinge.",
-      "Das Wallis gilt als Paradies… meistens."
-    ];
-    return hint+" "+jokes[Math.floor(Math.random()*jokes.length)];
+  if(t.includes("passwort")){
+    return "Dazu kann ich nichts sagen. Schauen Sie besser im FAQ der Webseite nach.";
   }
 
-  return "Dazu habe ich nichts Aktenkundiges. Konzentrieren wir uns auf den Fall. Sprüche können Sie dann wieder reissen, wenn Sie was geschafft haben";
+  let cat="";
+  if(t.includes("verdächtig") || t.includes("wer")) cat="verdächtige";
+  else if(t.includes("beweis")) cat="beweise";
+  else if(t.includes("tatzeit") || t.includes("wann")) cat="tatzeit";
+  else if(t.includes("wo") || t.includes("ort")) cat="ort";
+
+  if(cat){
+    const i = asked[cat];
+    const hint = hints[cat][i] || hints[cat][hints[cat].length-1];
+    asked[cat] = Math.min(i+1,hints[cat].length-1);
+    const joke = jokes[Math.floor(Math.random()*jokes.length)];
+    return hint+" "+joke;
+  }
+
+  const generic = [
+    "Das gehört nicht direkt zum Fall.",
+    "Konzentrieren wir uns lieber auf die Ermittlungen.",
+    "Interessant… aber im Moment nicht entscheidend.",
+    "Dazu habe ich keine gesicherten Informationen."
+  ];
+  return generic[Math.floor(Math.random()*generic.length)];
 }
 
+// ------------------------------
+// Nachricht senden
+// ------------------------------
 function send(){
-  const text=input.value.trim();
+  const text = input.value.trim();
   if(!text) return;
   input.value="";
   add(text,"user");
-  add(crimeResponse(text),"polizei");
-}
-
-function playVoice(){
-  if(!lastPoliceText) return;
-  const u=new SpeechSynthesisUtterance(lastPoliceText);
-  u.lang="de-DE";
-  u.pitch=0.6;
-  u.rate=0.85;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  const answer = crimeResponse(text);
+  add(answer,"polizei");
 }
 </script>
+
 </body>
 </html>
