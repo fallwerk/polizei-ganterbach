@@ -15,7 +15,7 @@ body{
 }
 .phone{
   width:320px;
-  height:600px;
+  height:620px;
   background:#e5ddd5;
   border-radius:30px;
   box-shadow:0 20px 60px rgba(0,0,0,0.4);
@@ -79,6 +79,10 @@ button{
   height:40px;
   font-size:18px;
 }
+.typing{
+  font-style:italic;
+  opacity:0.8;
+}
 </style>
 </head>
 
@@ -87,7 +91,7 @@ button{
 <div class="phone">
   <div class="header">
     Daniel Rieder 👮‍♂️
-    <div class="subheader">Regionalpolizei Ganterbach · online</div>
+    <div id="status" class="subheader">Regionalpolizei Ganterbach · online</div>
   </div>
 
   <div id="chat" class="chat"></div>
@@ -104,9 +108,35 @@ speechSynthesis.onvoiceschanged=()=>voices=speechSynthesis.getVoices();
 
 const chat=document.getElementById("chat");
 const input=document.getElementById("input");
+const status=document.getElementById("status");
 
 // ------------------------------
-// Nachricht anzeigen + sprechen
+// Beteiligte (nur Rollen)
+// ------------------------------
+const persons={
+  "thomas":"Thomas G. Brigger war Podcaster mit Fokus Umwelt und Tourismus.",
+  "brigger":"Thomas G. Brigger war regional bekannt.",
+  "doris":"Doris Bayard arbeitet in der Verwaltung des Campingplatzes.",
+  "bayard":"Doris Bayard organisiert den Betrieb.",
+  "martin nanzer":"Martin Nanzer ist Dauercamper mit handwerklichem Hintergrund.",
+  "nanzer":"Martin Nanzer hält sich oft länger am Platz auf.",
+  "tina":"Tina Wolf engagiert sich im Naturschutz.",
+  "wolf":"Tina Wolf ist häufig rund um den Bach unterwegs.",
+  "nina":"Nina Bellwald arbeitet an der Rezeption.",
+  "bellwald":"Die Familie Bellwald ist regional bekannt.",
+  "martin bellwald":"Martin Bellwald ist politisch aktiv.",
+  "peter":"Peter Jossen war früher Gemeindepolizist.",
+  "jossen":"Peter Jossen kennt alte Abläufe.",
+  "hans":"Hans Burri ist oft bei der Brücke.",
+  "burri":"Hans Burri kennt die Gegend gut.",
+  "fredy":"Fredy Näfen kümmert sich um die Technik auf dem Campingplatz Ganterbach.",
+  "näfen":"Fredy Näfen hilft bei Wartung.",
+  "stefanie":"Stefanie Schnydrig arbeitet im Social-Media-Bereich.",
+  "schnydrig":"Stefanie Schnydrig kennt sich mit Reichweite aus.",
+  "steven":"Steven Amherd lebt zeitweise im Van, selbstständig.",
+  "amherd":"Steven Amherd ist nicht dauerhaft gemeldet."
+};
+
 // ------------------------------
 function add(text,cls){
   const d=document.createElement("div");
@@ -118,148 +148,83 @@ function add(text,cls){
 }
 
 // ------------------------------
-// Männerstimme (ruhig, tief)
-// ------------------------------
 function speak(text){
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "de-DE";
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="de-DE";
 
-  const preferred = [
-    "Markus",
-    "Google Deutsch Male",
-    "Google Deutsch",
-    "Microsoft Stefan",
-    "Microsoft Markus"
-  ];
+  const pref=["Markus","Google Deutsch Male","Microsoft Stefan","Microsoft Markus"];
+  const v=voices.find(v=>pref.some(p=>v.name.includes(p)))||voices.find(v=>v.lang.startsWith("de"));
+  if(v) u.voice=v;
 
-  const voice = voices.find(v =>
-    preferred.some(name => v.name.includes(name))
-  ) || voices.find(v => v.lang.startsWith("de"));
-
-  if(voice) u.voice = voice;
-
-  u.pitch = 0.4;   // tiefer = männlicher
-  u.rate  = 0.65;  // ruhig & autoritär
-  u.volume = 1;
+  u.pitch=0.4;
+  u.rate=0.65;
+  u.volume=1;
 
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
 
 // ------------------------------
-// FINAL respond()
+// Status Handling
+// ------------------------------
+function setStatus(text){
+  status.innerText="Regionalpolizei Ganterbach · "+text;
+}
+
+// ------------------------------
+// respond()
 // ------------------------------
 function respond(q){
-  const t = q.toLowerCase();
+  const t=q.toLowerCase();
 
-  if(t.includes("hallo")||t.includes("hey")||t.includes("gruss"))
-    return rand([
-      "Ja hallo. Was gibt’s?",
-      "Gruss. Ich bin dran.",
-      "Hallo, sag mal.",
-      "Ja, ich hör dich."
-    ]);
+  for(const k in persons){
+    if(t.includes(k)){
+      return "Ja, kenn ich. "+persons[k]+" Mehr kann ich im Moment nicht sagen. Laufende Ermittlungen.";
+    }
+  }
 
-  if(t.includes("danke"))
-    return rand([
-      "Gern geschehen.",
-      "Kein Thema.",
-      "Wir Walliser helfen einander.",
-      "Dafür sind wir da."
-    ]);
-
-  if(t.includes("tschüss")||t.includes("ciao")||t.includes("bis"))
-    return rand([
-      "Bis später. Meld dich, wenn was ist.",
-      "Tschüss. Funk ist offen.",
-      "Bis dann.",
-      "Ich bin erreichbar."
-    ]);
-
-  if(t.includes("mord"))
-    return rand([
-      "So weit sind wir offiziell noch nicht.",
-      "Das ist im Moment noch offen.",
-      "Stand jetzt sprechen wir von einem Todesfall.",
-      "Findet ihr raus – wir bleiben sachlich."
-    ]);
-
-  if(t.includes("beweis")||t.includes("spur"))
-    return rand([
-      "Es gibt mehrere Spuren, nichts Abschließendes.",
-      "Einige Funde müssen noch geprüft werden.",
-      "Nicht jede Spur ist relevant.",
-      "Wir sichern erst, bewerten später."
-    ]);
-
-  if(t.includes("wer")||t.includes("verdacht")||t.includes("täter"))
-    return rand([
-      "Stand jetzt ist niemand offiziell verdächtig.",
-      "Wir hören uns alle Beteiligten an.",
-      "Viele waren vor Ort.",
-      "Auffälligkeiten gibt es mehrere."
-    ]);
-
-  if(t.includes("camping")||t.includes("ganterbach")||t.includes("zelt"))
-    return rand([
-      "Der Platz war gut besucht.",
-      "Typischer Sommerbetrieb.",
-      "Viele Leute, viel Bewegung.",
-      "Nicht alles ist einsehbar."
-    ]);
-
-  if(t.includes("wann")||t.includes("zeit")||t.includes("uhr"))
-    return rand([
-      "Zeitangaben gehen auseinander.",
-      "Viele orientieren sich nicht an der Uhr.",
-      "Abends verschwimmt vieles.",
-      "Das müssen wir noch eingrenzen."
-    ]);
-
-  if(t.includes("bericht")||t.includes("protokoll"))
-    return rand([
-      "Bericht ist in Arbeit.",
-      "Geht heute noch raus.",
-      "Details folgen schriftlich.",
-      "Mündlich nur das Nötigste."
-    ]);
-
-  if(t.includes("passwort")||t.includes("login"))
-    return rand([
-      "Dazu sag ich nichts im Chat.",
-      "Schau im Hilfe-Bereich nach.",
-      "Zugänge laufen nicht über mich.",
-      "Das ist sauber geregelt."
-    ]);
-
-  if(t.length<3)
-    return "Kannst du das etwas genauer formulieren?";
-
-  if(t.includes("😂")||t.includes("lol"))
-    return "Ja… Humor hilft. Aber nicht immer.";
+  if(t.includes("hallo")||t.includes("hey")) return rand(["Ja hallo.","Gruss."]);
+  if(t.includes("danke")) return rand(["Gern geschehen.","Wir Walliser helfen einander."]);
+  if(t.includes("tschüss")) return rand(["Bis später.","Meld dich, wenn was ist."]);
+  if(t.includes("mord")) return rand(["So weit sind wir offiziell noch nicht.","Findet ihr raus."]);
+  if(t.includes("beweis")) return rand(["Einige Spuren, nichts Sicheres.","Wir sichern erst."]);
+  if(t.includes("wer")) return rand(["Viele waren vor Ort.","Niemand offiziell."]);
+  if(t.includes("wann")||t.includes("zeit")) return rand(["Zeitangaben gehen auseinander."]);
+  if(t.includes("passwort")) return "Das läuft nicht über mich. Schau im Hilfe-Bereich.";
 
   return rand([
     "Dazu hab ich im Moment nichts Verlässliches.",
-    "Das nehme ich so auf.",
-    "Ich würde das nicht überbewerten.",
     "Lass uns bei den Fakten bleiben.",
     "Schreib ich mir auf."
   ]);
 }
 
-// ------------------------------
-function rand(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
-}
+function rand(a){return a[Math.floor(Math.random()*a.length)];}
 
+// ------------------------------
+// Senden
 // ------------------------------
 function send(){
   const text=input.value.trim();
   if(!text) return;
   input.value="";
   add(text,"user");
-  setTimeout(()=>add(respond(text),"polizei"),600);
+
+  setStatus("tippt…");
+  setTimeout(()=>{
+    add(respond(text),"polizei");
+    setStatus("online");
+  },900);
 }
+
+// ------------------------------
+// Automatische Begrüssung
+// ------------------------------
+window.onload=()=>{
+  setTimeout(()=>{
+    add("Hallo zusammen. Daniel Rieder hier. Ich war als Erster vor Ort beim Campingplatz Ganterbach. Wenn ihr Fragen habt – schreibt einfach.","polizei");
+  },800);
+};
 </script>
 
 </body>
