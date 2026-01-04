@@ -6,80 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  background:#222;
-  font-family: -apple-system, BlinkMacSystemFont, Arial;
-  display:flex;
-  justify-content:center;
-  padding:20px;
-}
-
-.phone {
-  width:360px;
-  height:640px;
-  background:#000;
-  border-radius:30px;
-  box-shadow:0 0 40px #000;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-}
-
-.header {
-  padding:15px;
-  text-align:center;
-  background:#111;
-  color:#9ddcff;
-  font-weight:bold;
-}
-
-.chat {
-  flex:1;
-  padding:10px;
-  overflow-y:auto;
-  background:#0d0d0d;
-}
-
-.msg {
-  max-width:80%;
-  padding:10px;
-  margin:8px 0;
-  border-radius:12px;
-  font-size:14px;
-}
-
-.user {
-  background:#1e90ff;
-  color:white;
-  margin-left:auto;
-  border-bottom-right-radius:0;
-}
-
-.polizei {
-  background:#222;
-  color:#9ddcff;
-  border-bottom-left-radius:0;
-}
-
-.input {
-  display:flex;
-  padding:10px;
-  background:#111;
-}
-
-input {
-  flex:1;
-  padding:10px;
-  border-radius:20px;
-  border:none;
-}
-
-button {
-  margin-left:6px;
-  border-radius:50%;
-  border:none;
-  padding:10px;
-}
+body { background:#222; font-family: -apple-system, BlinkMacSystemFont, Arial; display:flex; justify-content:center; padding:20px; }
+.phone { width:350px; height:640px; background:#000; border-radius:30px; box-shadow:0 0 40px #000; display:flex; flex-direction:column; overflow:hidden; }
+.header { padding:15px; text-align:center; background:#111; color:#9ddcff; font-weight:bold; }
+.chat { flex:1; padding:10px; overflow-y:auto; background:#0d0d0d; }
+.msg { max-width:80%; padding:10px; margin:8px 0; border-radius:12px; font-size:14px; }
+.user { background:#1e90ff; color:white; margin-left:auto; border-bottom-right-radius:0; }
+.polizei { background:#222; color:#9ddcff; border-bottom-left-radius:0; }
+.input { display:flex; padding:10px; background:#111; }
+input { flex:1; padding:10px; border-radius:20px; border:none; }
+button { margin-left:6px; border-radius:50%; border:none; padding:10px; }
 </style>
 </head>
 
@@ -98,73 +34,113 @@ button {
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
-let history = [];
 let lastPoliceText = "";
+const askedQuestions = {};
 
+// Nachricht hinzufügen
 function add(text, cls){
-  const d = document.createElement("div");
-  d.className = "msg " + cls;
-  d.innerText = text;
+  const d=document.createElement("div");
+  d.className="msg "+cls;
+  d.innerText=text;
   chat.appendChild(d);
-  chat.scrollTop = chat.scrollHeight;
-  if(cls === "polizei") lastPoliceText = text;
+  chat.scrollTop=chat.scrollHeight;
+  if(cls==="polizei") lastPoliceText=text;
 }
 
-// KRIMI-LOGIK
+// Krimi-Hinweise pro Kategorie
+const hints = {
+  verdächtige:[
+    "Da gibt es viele und Sie als Ermittlungsteam wurden ja gerufen, uns hier zu helfen.",
+    "Einige Personen scheinen Motive zu haben, das Opfer war nicht bei allen beliebt.",
+    "Ein Verdächtiger hat behauptet, er sei bei einem Blinddate in Naters gewesen."
+    "Schauen sie doch noch genauer in die Unterlagen, oder sind sie zu faul?"
+  ],
+  beweise:[
+    "Beim Opfer lag ein Tagebuch.",
+    "Es lag viel Müll beim Opfer",
+    "Auf dem Campingplatz Ganterbach waren leider die Überwachungskameras defekt.."
+  ],
+  tatzeit:[
+    "Die Tatzeit kann nach der Analyse bei der Forensik sicher eingegrenzt werden.",
+    "Ein Fischer war am Morgen vom 12.August.2025 beim Bach, und das Verbrechen gemeldet.",
+    "Muss sicher schon Dunkel gewesen sein"
+  ],
+  Thomas:[
+    "Das Opfer hatte anscheinend einen Podcast auf Spotify",
+    "Er ist ein Heimwehwalliser, seine Grosseltern wurden im Wallis geboren",
+    "Er hatte hier noch nicht so viele Freunde"
+      Zeltplatz:[
+    "Der Platz für die Zelte liegt 7 Gehminuten vom Tatort.",
+  ],
+  ort:[
+    "Der Campingplatz Ganterbach liegt idyllisch im Wallis – leider wurde es hier zum Tatort.",
+    "Die Überwachungskameras waren ausgeschaltet.",
+    "Einige Stellplätze waren während der Tat unbesetzt."
+    "Der Platz für die Zelte liegt 7 Gehminuten vom Tatort."
+  ]
+};
+
+// Krimi-Antworten generieren
 function crimeResponse(q){
-  const t = q.toLowerCase();
+  const t=q.toLowerCase();
 
-  if(t.includes("passwort")){
-    return "Oh! schon wieder haben Sie das vergessen.... Schauen Sie sich doch mal das FAQ der Regionalpolizei-Webseite. Da steht oft mehr, als man denkt.";
+  if(t.includes("passwort")) return "Dazu kann ich nichts sagen. Schauen Sie doch mal im FAQ der Regionalpolizei Webseite nach.";
+
+  let category="";
+  if(t.includes("verdächtig")) category="verdächtige";
+  else if(t.includes("beweis")) category="beweise";
+  else if(t.includes("tatzeit") || t.includes("wann")) category="tatzeit";
+  else if(t.includes("wo") || t.includes("ort")) category="ort";
+
+  if(category){
+    askedQuestions[category]=askedQuestions[category]||0;
+    const index=askedQuestions[category];
+    const hint=hints[category][index] || hints[category][hints[category].length-1];
+    askedQuestions[category]=Math.min(index+1,hints[category].length-1);
+    const jokes=[
+      "Die Berge schweigen, aber die Camper nicht immer.",
+      "Ein Mordfall zwischen Kühen und Zelten – man könnte fast lachen, wenn es nicht ernst wäre.",
+      "Manchmal frage ich mich, ob die Bergluft die Verhöre beeinflusst…",
+      "Die Alpen verraten nicht alles, aber ein paar Hinweise doch."
+      "Das Image vom Wallis als das Paradies der Schweiz steht auf dem Spiel"
+    ];
+    const joke=jokes[Math.floor(Math.random()*jokes.length)];
+    return hint+" "+joke;
   }
 
-  if(t.includes("verdächtig") || t.includes("beweise") || t.includes("tatzeit")){
-    return "Alle Personen waren zur Tatzeit auf dem Campingplatz. Aussagen und Verhöre finden Sie online. Und glauben Sie mir: Im Wallis ist nicht jeder ruhig, nur weil die Berge still sind.";
-  }
-
-  const jokes = [
-    "Im Wallis hört man nachts alles. Auch Dinge, die man lieber nicht hören möchte.",
-    "Die Berge sind ruhig – Menschen weniger.",
-    "Hier oben verläuft sich nicht nur der Nebel.",
-    "Ein Mordfall zwischen Kühen und Campingstühlen… glauben Sie mir, ich hätte mir auch einen ruhigeren Dienst gewünscht."
+  // Generische Walliser-Humor-Antworten
+  const generic=[
+    "Die Berge sind stiller als manche Camper…",
+    "Interessant… aber ich konzentriere mich auf den Tatort.",
+    "Nicht direkt mein Zuständigkeitsbereich, aber spannend…",
+    "Ein Hinweis dazu: Im Wallis verliert man sich manchmal im Nebel."
   ];
-
-  return jokes[Math.floor(Math.random()*jokes.length)];
+  return generic[Math.floor(Math.random()*generic.length)];
 }
 
-async function send(){
-  const text = input.value.trim();
+// Nachricht senden
+function send(){
+  const text=input.value.trim();
   if(!text) return;
   input.value="";
   add(text,"user");
-  history.push({role:"user",content:text});
-
   let answer;
-
-  if(/camping|mord|ganterbach|verdächtig|beweis|tat|passwort/i.test(text)){
-    answer = crimeResponse(text);
+  if(/camping|mord|ganterbach|verdächtig|beweis|tat|passwort|wann|wer|wo|ort/i.test(text)){
+    answer=crimeResponse(text);
   } else {
-    try {
-      const r = await fetch("https://plain-sea-bb50.fallwerk-krimi.workers.dev/",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({messages:history})
-      });
-      const j = await r.json();
-      answer = j.choices[0].message.content;
-    } catch {
-      answer = "Verbindung fehlgeschlagen. Funkloch im Tal… kommt vor.";
-    }
+    const generic=["Das ist nicht Teil des Falls, aber interessant…",
+                  "Ich konzentriere mich auf den Tatort, aber das klingt spannend.",
+                   "Bei der nächsten solchen Frage, fangen wir Sie mal beim Nachhauseweg ab. Akoholtest inklusive",
+                  "Nicht direkt mein Zuständigkeitsbereich, aber spannend…"];
+    answer=generic[Math.floor(Math.random()*generic.length)];
   }
-
   add(answer,"polizei");
-  history.push({role:"assistant",content:answer});
 }
 
 // iOS Stimme
 function playVoice(){
   if(!lastPoliceText) return;
-  const u = new SpeechSynthesisUtterance(lastPoliceText);
+  const u=new SpeechSynthesisUtterance(lastPoliceText);
   u.lang="de-DE";
   u.pitch=0.6;
   u.rate=0.85;
