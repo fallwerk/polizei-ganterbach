@@ -26,6 +26,7 @@ input { width:100%; padding:10px; margin-top:10px; }
 <script>
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
+let chatHistory = [];
 let lastPoliceText = "";
 
 // Nachrichten ins Chatfenster
@@ -38,48 +39,69 @@ function add(text, cls){
   if(cls === "polizei") lastPoliceText = text;
 }
 
-// Witziger Polizist: Antworten generieren
-function generateFunnyResponse(userText) {
+// Krimi-spezifische Logik
+function handleCrimeQuestions(userText) {
   const lower = userText.toLowerCase();
 
-  // Beispielhafte Kategorien
-  if (lower.includes("pizza") || lower.includes("essen")) {
-    return "Als Polizist kann ich leider nicht zum Pizzaessen kommen, aber ich empfehle die Margherita – sauber, klassisch, zuverlässig!";
-  }
-  if (lower.includes("tanz") || lower.includes("party")) {
-    return "Tanzen? Ich habe nur Zeit für Sirenen-Tanz, sehr rhythmisch!";
-  }
-  if (lower.includes("hund")) {
-    return "wir haben leider keinen Hund mehr auf Streife";
-  }
-  if (lower.includes("katze")) {
-    return "Katzen sind schwer zu kontrollieren, da lasse ich lieber die Profis ran.";
-  }
-  if (lower.includes("urlaub")) {
-    return "Urlaub? Haha, brauch ich nicht, arbeite ja schon im Wallis !";
+  // Passwort
+  if(lower.includes("passwort")) {
+    return "Schau am besten ins FAQ der Regionalpolizei-Website, da findet man solche Infos.";
   }
 
-  // Standard-Polizei-Antwort
-  const funnyReplies = [
-    "Ich notiere das mal in meinem Notizbuch.",
-    "Achtung, das klingt nach einem ganz verzwickten Fall",
-    "Interessant… das könnte sogar die Polizei von Bern interessieren.",
-    "Ich muss Sie leider verwarnen: zu viel Humor, kommt nur im Film bei tschugger gut an.",
-    "Das werde ich an meinen Kollegen melden… der Kaffee ist eh alle."
+  // Verdächtige oder Hinweise
+  if(lower.includes("verdächtige") || lower.includes("beweise") || lower.includes("tatzeit")) {
+    return "Die Unterlagen und Verhöre findest du auf der Regionalpolizei-Website. Aber Vorsicht: nicht jeder Hinweis ist so harmlos wie ein Walliser Käse!";
+  }
+
+  // Wallis Humor
+  const wallisJokes = [
+    "Im Wallis ist sogar der Berg sicherer als manche Camper…",
+    "Wer die Alpen liebt, hat manchmal mehr mit Kühen als mit Kriminellen zu tun!",
+    "Die Sonne brennt hier so stark, dass selbst Hinweise manchmal schmelzen…",
+    "Zwischen Matterhorn und Mordfall – so ist das Leben in den Bergen!"
   ];
-  return funnyReplies[Math.floor(Math.random() * funnyReplies.length)];
+  const joke = wallisJokes[Math.floor(Math.random() * wallisJokes.length)];
+
+  return `Ernsthaft: ${joke}`;
 }
 
-// Nachricht senden
-function send(){
+// Nachricht an Worker/ChatGPT senden
+async function send(){
   const text = input.value.trim();
   if(!text) return;
   add("Du: " + text);
   input.value = "";
+  chatHistory.push({role:"user", content:text});
 
-  // Witzige Antwort generieren
-  const response = generateFunnyResponse(text);
-  add("" + response,"polizei");
+  // Wenn Krimi-spezifisch
+  let responseText;
+  const isCrimeQuestion = /camping|mord|ganterbach|verdächtige|beweise|tatzeit|passwort/i.test(text);
+
+  if(isCrimeQuestion){
+    responseText = handleCrimeQuestions(text);
+  } else {
+    // ChatGPT Worker Anfrage
+    try {
+      const r = await fetch("https://plain-sea-bb50.fallwerk-krimi.workers.dev/",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          model:"gpt-4o-mini",
+          messages: chatHistory
+        })
+      });
+      if(!r.ok){ responseText = "❌ Fehler bei ChatGPT ("+r.status+")"; }
+      else {
+        const j = await r.json();
+        responseText = j.choices[0].message.content;
+      }
+    } catch(e){
+      responseText = "❌ Verbindung fehlgeschlagen";
+    }
+  }
+
+  add("Jordan: " + responseText, "polizei");
+  chatHistory.push({role:"assistant", content: responseText});
 }
 
 // iOS-optimierte Stimme
@@ -88,10 +110,8 @@ function playVoice() {
 
   const utter = new SpeechSynthesisUtterance(lastPoliceText);
   utter.lang = "de-DE";
-
-  // iOS optimiert: tiefer & langsamer
-  utter.pitch = 0.6; // tiefer
-  utter.rate = 0.85; // langsamer
+  utter.pitch = 0.6;
+  utter.rate = 0.85;
   utter.volume = 1;
 
   speechSynthesis.cancel();
