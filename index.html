@@ -117,11 +117,29 @@ function add(text,cls){
 
 // Funk / Stimme
 function speak(text){
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang="de-DE";
-  u.voice=voices.find(v=>v.lang.startsWith("de"))||null;
-  u.rate=0.9;
-  u.pitch=0.9;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "de-DE";
+
+  // Bevorzuge deutsche Männerstimmen
+  const preferredVoices = [
+    "Markus",          // macOS (sehr gut)
+    "Google Deutsch",  // Chrome
+    "Google Deutsch Male",
+    "Microsoft Stefan",
+    "Microsoft Markus"
+  ];
+
+  const voice = voices.find(v =>
+    preferredVoices.some(name => v.name.includes(name))
+  ) || voices.find(v => v.lang.startsWith("de"));
+
+  if(voice) u.voice = voice;
+
+  // Stimme tiefer & ruhiger
+  u.pitch = 0.6;   // Standard = 1 (tiefer = männlicher)
+  u.rate  = 0.8;   // langsamer = autoritärer
+  u.volume = 1;
+
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
@@ -166,6 +184,13 @@ const hints={
     "Es gibt viele ruhige Ecken.",
     "Nicht alles ist gut einsehbar.",
     "Der Bach zieht Leute an."
+  ],
+  Hallo:[
+    "ja hallo, wir können gerne zusammen Chatten.",
+    "Ja hallo, was gibts?",
+  ],
+  Mord:[
+    "Noch nicht sicher, aber sieht fast so aus.",
   ],
   zeit:[
     "Zeitangaben gehen hier ziemlich auseinander.",
