@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>📱 Daniel Rieder – Polizei Ganterbach</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{
   background:#ece5dd;
@@ -13,8 +14,8 @@ body{
   padding:20px;
 }
 .phone{
-  width:300px;
-  height:580px;
+  width:320px;
+  height:600px;
   background:#e5ddd5;
   border-radius:30px;
   box-shadow:0 20px 60px rgba(0,0,0,0.4);
@@ -103,9 +104,10 @@ speechSynthesis.onvoiceschanged=()=>voices=speechSynthesis.getVoices();
 
 const chat=document.getElementById("chat");
 const input=document.getElementById("input");
-const asked={};
 
-// Nachricht anzeigen
+// ------------------------------
+// Nachricht anzeigen + sprechen
+// ------------------------------
 function add(text,cls){
   const d=document.createElement("div");
   d.className="msg "+cls;
@@ -115,122 +117,142 @@ function add(text,cls){
   if(cls==="polizei") speak(text);
 }
 
-// Funk / Stimme
+// ------------------------------
+// Männerstimme (ruhig, tief)
+// ------------------------------
 function speak(text){
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "de-DE";
 
-  // Bevorzuge deutsche Männerstimmen
-  const preferredVoices = [
-    "Markus",          // macOS (sehr gut)
-    "Google Deutsch",  // Chrome
+  const preferred = [
+    "Markus",
     "Google Deutsch Male",
+    "Google Deutsch",
     "Microsoft Stefan",
     "Microsoft Markus"
   ];
 
   const voice = voices.find(v =>
-    preferredVoices.some(name => v.name.includes(name))
+    preferred.some(name => v.name.includes(name))
   ) || voices.find(v => v.lang.startsWith("de"));
 
   if(voice) u.voice = voice;
 
-  // Stimme tiefer & ruhiger
-  u.pitch = 0.4;   // Standard = 1 (tiefer = männlicher)
-  u.rate  = 0.7;   // langsamer = autoritärer
+  u.pitch = 0.4;   // tiefer = männlicher
+  u.rate  = 0.65;  // ruhig & autoritär
   u.volume = 1;
 
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
 
-// Personen (nur Funktionen)
-const persons={
-  "thomas":"Thomas G. Brigger war Podcaster. Thematisch Umwelt, Tourismus und lokale Themen.",
-  "brigger":"Thomas G. Brigger war öffentlich sehr präsent.",
-  "doris":"Doris Bayard arbeitet in der Verwaltung des Campingplatzes.",
-  "bayard":"Doris Bayard ist für Organisation und Abläufe zuständig.",
-  "martin nanzer":"Martin Nanzer ist Dauercamper mit handwerklichem Hintergrund.",
-  "Nanzer":"Martin Nanzer haltet sich regelmäßig länger am Platz auf.",
-  "stefanie":"Stefanie Schnydrig arbeitet im Social-Media-Bereich.",
-  "steven":"Steven Amherd lebt zeitweise in einem Van, selbstständig. Schuhverkäufer",
-  "Peter":"Peter Jossen war früher Gemeindepolizist.",
-  "tina":"Tina Wolf engagiert sich im Naturschutz.",
-  "fredy":"Fredy Näfen betreut in seiner Freizeit die technische Anlagen am Campingplatz.",
-  "nina":"Nina Bellwald arbeitet an der Rezeption.",
-  "hans":"Hans Burri ist in der Region bekannt, oft an der Brücke.",
-  "Martin Bellwald":"Martin Bellwald ist politisch aktiv."
-};
-
-// Allgemeine Antworten
-const general=[
-  "Du, dazu hab ich im Moment nichts Verlässliches.",
-  "Gute Frage – da wäre ich vorsichtig.",
-  "Ich würde das nicht überbewerten.",
-  "Lass uns bei den Fakten bleiben.",
-  "Schreib ich mir mal auf."
-];
-
-// Kontextantworten
-const hints={
-  verdacht:[
-    "Auf einem Campingplatz hat fast jede:r irgendwas gesehen.",
-    "Nicht jede Beobachtung ist gleich wichtig.",
-    "Manche wirken ruhig, andere nervös – das heißt noch nichts.",
-    "Ferien machen Erinnerungen ungenau."
-  ],
-  ort:[
-    "Der Platz ist größer und verwinkelter, als man denkt.",
-    "Es gibt viele ruhige Ecken.",
-    "Nicht alles ist gut einsehbar.",
-    "Der Bach zieht Leute an."
-  ],
-   Tschüss:[
-    "Wir hören uns, viel Erfolg bis dann.",
-  ],
-  hallo:[
-    "ja hallo, wir können gerne zusammen Chatten.",
-    "Ja hallo, was gibts?",
-  ],
-  mord:[
-    "Noch nicht sicher, aber sieht fast so aus.",
-  ],
-  zeit:[
-    "Zeitangaben gehen hier ziemlich auseinander.",
-    "Viele orientieren sich nicht an der Uhr.",
-    "Abends verschwimmt vieles.",
-    "Darum müssen wir genau hinschauen. Warten wir mal den Bericht der Forensik von Brig ab."
-  ]
-};
-
-// Antwortlogik
+// ------------------------------
+// FINAL respond()
+// ------------------------------
 function respond(q){
-  const t=q.toLowerCase();
+  const t = q.toLowerCase();
 
-  for(const k in persons){
-    if(t.includes(k)){
-      return "Ja, kenn ich. "+persons[k]+" Mehr kann ich dir dazu im Moment nicht sagen. Es sind laufende Ermittlungen und ihr seid an der Front";
-    }
-  }
+  if(t.includes("hallo")||t.includes("hey")||t.includes("gruss"))
+    return rand([
+      "Ja hallo. Was gibt’s?",
+      "Gruss. Ich bin dran.",
+      "Hallo, sag mal.",
+      "Ja, ich hör dich."
+    ]);
 
-  if(t.includes("passwort")){
-    return "Dazu kann ich dir nichts sagen. Schau dir doch mal das Hilfe Menu auf unserer Webseite mal in Ruhe an.";
-  }
+  if(t.includes("danke"))
+    return rand([
+      "Gern geschehen.",
+      "Kein Thema.",
+      "Wir Walliser helfen einander.",
+      "Dafür sind wir da."
+    ]);
 
-  if(t.includes("wer")||t.includes("verdacht")){
-    return hints.verdacht[Math.floor(Math.random()*hints.verdacht.length)];
-  }
-  if(t.includes("wo")||t.includes("ort")){
-    return hints.ort[Math.floor(Math.random()*hints.ort.length)];
-  }
-  if(t.includes("wann")||t.includes("zeit")){
-    return hints.zeit[Math.floor(Math.random()*hints.zeit.length)];
-  }
+  if(t.includes("tschüss")||t.includes("ciao")||t.includes("bis"))
+    return rand([
+      "Bis später. Meld dich, wenn was ist.",
+      "Tschüss. Funk ist offen.",
+      "Bis dann.",
+      "Ich bin erreichbar."
+    ]);
 
-  return general[Math.floor(Math.random()*general.length)];
+  if(t.includes("mord"))
+    return rand([
+      "So weit sind wir offiziell noch nicht.",
+      "Das ist im Moment noch offen.",
+      "Stand jetzt sprechen wir von einem Todesfall.",
+      "Findet ihr raus – wir bleiben sachlich."
+    ]);
+
+  if(t.includes("beweis")||t.includes("spur"))
+    return rand([
+      "Es gibt mehrere Spuren, nichts Abschließendes.",
+      "Einige Funde müssen noch geprüft werden.",
+      "Nicht jede Spur ist relevant.",
+      "Wir sichern erst, bewerten später."
+    ]);
+
+  if(t.includes("wer")||t.includes("verdacht")||t.includes("täter"))
+    return rand([
+      "Stand jetzt ist niemand offiziell verdächtig.",
+      "Wir hören uns alle Beteiligten an.",
+      "Viele waren vor Ort.",
+      "Auffälligkeiten gibt es mehrere."
+    ]);
+
+  if(t.includes("camping")||t.includes("ganterbach")||t.includes("zelt"))
+    return rand([
+      "Der Platz war gut besucht.",
+      "Typischer Sommerbetrieb.",
+      "Viele Leute, viel Bewegung.",
+      "Nicht alles ist einsehbar."
+    ]);
+
+  if(t.includes("wann")||t.includes("zeit")||t.includes("uhr"))
+    return rand([
+      "Zeitangaben gehen auseinander.",
+      "Viele orientieren sich nicht an der Uhr.",
+      "Abends verschwimmt vieles.",
+      "Das müssen wir noch eingrenzen."
+    ]);
+
+  if(t.includes("bericht")||t.includes("protokoll"))
+    return rand([
+      "Bericht ist in Arbeit.",
+      "Geht heute noch raus.",
+      "Details folgen schriftlich.",
+      "Mündlich nur das Nötigste."
+    ]);
+
+  if(t.includes("passwort")||t.includes("login"))
+    return rand([
+      "Dazu sag ich nichts im Chat.",
+      "Schau im Hilfe-Bereich nach.",
+      "Zugänge laufen nicht über mich.",
+      "Das ist sauber geregelt."
+    ]);
+
+  if(t.length<3)
+    return "Kannst du das etwas genauer formulieren?";
+
+  if(t.includes("😂")||t.includes("lol"))
+    return "Ja… Humor hilft. Aber nicht immer.";
+
+  return rand([
+    "Dazu hab ich im Moment nichts Verlässliches.",
+    "Das nehme ich so auf.",
+    "Ich würde das nicht überbewerten.",
+    "Lass uns bei den Fakten bleiben.",
+    "Schreib ich mir auf."
+  ]);
 }
 
-// Senden
+// ------------------------------
+function rand(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+// ------------------------------
 function send(){
   const text=input.value.trim();
   if(!text) return;
@@ -242,3 +264,4 @@ function send(){
 
 </body>
 </html>
+
