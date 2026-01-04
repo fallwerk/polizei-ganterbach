@@ -28,7 +28,7 @@ const messages = document.getElementById("messages");
 const input = document.getElementById("input");
 let lastPoliceText = "";
 
-// Nachricht hinzufügen
+// Nachrichten ins Chatfenster
 function add(text, cls){
   const d = document.createElement("div");
   d.className = "msg " + (cls || "");
@@ -38,7 +38,7 @@ function add(text, cls){
   if(cls === "polizei") lastPoliceText = text;
 }
 
-// Nachricht senden
+// Nachricht senden an Worker
 async function send(){
   const text = input.value.trim();
   if(!text) return;
@@ -66,41 +66,20 @@ async function send(){
   }
 }
 
-// Neue Version: Deutsche männliche Stimme, natürlicher Klang
+// iOS-optimierte Stimme
 function playVoice() {
   if (!lastPoliceText) return;
 
   const utter = new SpeechSynthesisUtterance(lastPoliceText);
   utter.lang = "de-DE";
 
-  const speakWithVoice = () => {
-    const voices = speechSynthesis.getVoices();
+  // iOS optimiert: tiefer & langsamer
+  utter.pitch = 0.6; // tiefer
+  utter.rate = 0.85; // langsamer
+  utter.volume = 1;
 
-    // Männliche deutsche Stimme bevorzugen
-    let voice = voices.find(v =>
-      v.lang === "de-DE" && v.name.toLowerCase().includes("male")
-    );
-
-    // Fallback: irgendeine deutsche Stimme
-    if (!voice) voice = voices.find(v => v.lang === "de-DE") || voices[0];
-
-    utter.voice = voice;
-
-    // Pitch & Rate für natürlicheren Klang
-    utter.pitch = 0.8; // tiefer
-    utter.rate = 0.95; // etwas langsamer
-    utter.volume = 1;
-
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utter);
-  };
-
-  // Stimmen werden oft asynchron geladen
-  if (speechSynthesis.getVoices().length === 0) {
-    speechSynthesis.onvoiceschanged = () => speakWithVoice();
-  } else {
-    speakWithVoice();
-  }
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
 }
 
 // Spracheingabe
@@ -118,6 +97,5 @@ function speak(){
   };
 }
 </script>
-
 </body>
 </html>
