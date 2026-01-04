@@ -12,6 +12,7 @@ body { background:#222; font-family:-apple-system, BlinkMacSystemFont, Arial; di
 .msg { max-width:80%; padding:10px; margin:8px 0; border-radius:12px; font-size:14px; }
 .user { background:#1e90ff; color:white; margin-left:auto; border-bottom-right-radius:0; }
 .polizei { background:#222; color:#9ddcff; border-bottom-left-radius:0; }
+.worker { background:#333; color:#fff; border-bottom-left-radius:0; }
 .input { display:flex; padding:10px; background:#111; }
 input { flex:1; padding:10px; border-radius:20px; border:none; }
 button { margin-left:6px; border-radius:50%; border:none; padding:10px; }
@@ -29,17 +30,13 @@ button { margin-left:6px; border-radius:50%; border:none; padding:10px; }
 </div>
 
 <script>
-// ------------------------------
-// Variablen
-// ------------------------------
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 let lastPoliceText = "";
-
 const asked = { verdächtige:0, beweise:0, tatzeit:0, ort:0 };
 
 // ------------------------------
-// Hilfsfunktionen
+// Nachricht hinzufügen & automatische Sprachausgabe
 // ------------------------------
 function add(text, cls){
   const d = document.createElement("div");
@@ -48,10 +45,8 @@ function add(text, cls){
   chat.appendChild(d);
   chat.scrollTop = chat.scrollHeight;
 
-  if(cls === "polizei"){
-    lastPoliceText = text;
-    speakPolice(text); // automatisches Sprechen
-  }
+  if(cls === "polizei") speakPolice(text);      // Krimi lokal
+  if(cls === "worker") speakWorker(text);       // GPT-Antwort
 }
 
 // ------------------------------
@@ -73,14 +68,15 @@ function playRadioStatic(){
 }
 
 // ------------------------------
-// Polizei Sprachausgabe (inkl. Flüstern)
+// Krimi-Polizei Stimme
 // ------------------------------
 function speakPolice(text){
   const whisper = /unter uns|inoffiziell|vertraulich|zwischen uns|nicht offiziell/i.test(text);
-  playRadioStatic(); // Funkgeräusch
+  playRadioStatic();
   setTimeout(()=>{
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "de-DE";
+    u.voice = speechSynthesis.getVoices().find(v=>v.name==="Markus") || null;
     if(whisper){ u.volume=0.35; u.rate=0.7; u.pitch=0.4; }
     else{ u.volume=1; u.rate=0.85; u.pitch=0.6; }
     speechSynthesis.cancel();
@@ -89,7 +85,19 @@ function speakPolice(text){
 }
 
 // ------------------------------
-// Hinweise und Humor
+// GPT/Worker Stimme
+// ------------------------------
+function speakWorker(text){
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "de-DE";
+  u.voice = speechSynthesis.getVoices().find(v=>v.name==="Markus") || null;
+  u.volume = 1; u.rate = 0.85; u.pitch=0.6;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+// ------------------------------
+// Krimi-Hinweise
 // ------------------------------
 const hints = {
   verdächtige:[
@@ -99,21 +107,20 @@ const hints = {
   ],
   beweise:[
     "Am Tatort wurden persönliche Gegenstände des Opfers gefunden.",
-    "Ein Tagebuch wirft mehr Fragen auf, als es beantwortet.",
+    "Einige Ding geben mehr Fragen auf, als sie beantworten.",
     "Manche Spuren wirken nebensächlich – sind es aber oft nicht."
   ],
   tatzeit:[
-    "Die Tat geschah zwischen spätem Nachmittag und früher Nacht.",
+    "Die Tat geschah wohl im Dunkeln",
     "Zu dieser Zeit waren noch einige Camper unterwegs.",
-    "Dunkel war es noch nicht ganz – das ist wichtig."
+    "Die genaue Tatzeit wird sicher die Forensik uns verraten"
   ],
   ort:[
     "Der Campingplatz Ganterbach liegt ruhig, fast zu ruhig.",
     "Der Tatort liegt etwas abseits der Hauptwege.",
-    "Nicht jeder Stellplatz war zur Tatzeit belegt."
+    "Vom Platz mit den Zelten bis zum Tatort sind es mehr als 7 Gehminuten"
   ]
 };
-
 const jokes = [
   "Im Wallis sind die Berge still – aber die Menschen nicht.",
   "Bei uns kennt jeder jeden… oder glaubt es zumindest.",
@@ -122,14 +129,11 @@ const jokes = [
 ];
 
 // ------------------------------
-// Antwortlogik
+// Krimi Antwortlogik
 // ------------------------------
 function crimeResponse(q){
   const t = q.toLowerCase();
-
-  if(t.includes("passwort")){
-    return "Dazu kann ich nichts sagen. Schauen Sie besser im FAQ der Webseite nach.";
-  }
+  if(t.includes("passwort")) return "Dazu kann ich nichts sagen. Schauen Sie besser im FAQ der Webseite nach.";
 
   let cat="";
   if(t.includes("verdächtig") || t.includes("wer")) cat="verdächtige";
@@ -157,13 +161,30 @@ function crimeResponse(q){
 // ------------------------------
 // Nachricht senden
 // ------------------------------
-function send(){
+async function send(){
   const text = input.value.trim();
   if(!text) return;
   input.value="";
   add(text,"user");
-  const answer = crimeResponse(text);
-  add(answer,"polizei");
+
+  // Krimi-Begriffe lokal
+  if(/camping|mord|ganterbach|verdächtig|beweis|tat|passwort|wann|wer|wo|ort/i.test(text)){
+    const answer = crimeResponse(text);
+    add(answer,"polizei");
+  } else {
+    // Alles andere → Worker
+    try{
+      const res = await fetch("https://plain-sea-bb50.fallwerk-krimi.workers.dev/",{
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ messages:[{role:"user", content:text}] })
+      });
+      if(!res.ok){ add("❌ Fehler ("+res.status+")","worker"); return; }
+      const data = await res.json();
+      const answer = data.choices?.[0]?.message?.content || "Keine Antwort von GPT.";
+      add(answer,"worker");
+    } catch(e){ add("❌ Verbindung fehlgeschlagen","worker"); }
+  }
 }
 </script>
 
