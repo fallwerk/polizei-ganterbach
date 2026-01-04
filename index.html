@@ -60,7 +60,7 @@ async function send(){
     );
     if(!r.ok){ add("❌ Fehler ("+r.status+")","polizei"); return; }
     const j = await r.json();
-    add("Jordan: " + j.choices[0].message.content,"polizei");
+    add("" + j.choices[0].message.content,"polizei");
   } catch(e){
     add("❌ Verbindung fehlgeschlagen","polizei");
   }
