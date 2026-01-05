@@ -14,7 +14,7 @@ body{
   padding:20px;
 }
 .phone{
-  width:290px;
+  width:300px;
   height:560px;
   background:#e5ddd5;
   border-radius:30px;
@@ -79,10 +79,6 @@ button{
   height:40px;
   font-size:18px;
 }
-.typing{
-  font-style:italic;
-  opacity:0.8;
-}
 </style>
 </head>
 
@@ -103,41 +99,47 @@ button{
 </div>
 
 <script>
+/* =========================
+   STIMME (MÄNNLICH)
+========================= */
 let voices=[];
 speechSynthesis.onvoiceschanged=()=>voices=speechSynthesis.getVoices();
 
+function speak(text){
+  if(!voices.length) voices = speechSynthesis.getVoices();
+
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "de-DE";
+
+  const malePriority = [
+    "Markus",
+    "Microsoft Stefan",
+    "Microsoft Markus",
+    "Google Deutsch Male",
+    "Google Deutsch"
+  ];
+
+  const voice =
+    voices.find(v=>malePriority.some(n=>v.name.includes(n)))
+    || voices.find(v=>v.lang.startsWith("de"));
+
+  if(voice) u.voice = voice;
+
+  u.pitch = 0.35;
+  u.rate  = 0.65;
+  u.volume = 1;
+
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+/* =========================
+   CHAT BASIS
+========================= */
 const chat=document.getElementById("chat");
 const input=document.getElementById("input");
 const status=document.getElementById("status");
 
-// ------------------------------
-// Beteiligte (nur Rollen)
-// ------------------------------
-const persons={
-  "thomas":"Thomas G. Brigger war Podcaster mit Fokus Umwelt und Tourismus.",
-  "brigger":"Thomas G. Brigger war regional bekannt.",
-  "doris":"Doris Bayard arbeitet in der Verwaltung des Campingplatzes.",
-  "bayard":"Doris Bayard organisiert den Betrieb.",
-  "martin nanzer":"Martin Nanzer ist Dauercamper mit handwerklichem Hintergrund.",
-  "nanzer":"Martin Nanzer hält sich oft länger am Platz auf.",
-  "tina":"Tina Wolf engagiert sich im Naturschutz.",
-  "wolf":"Tina Wolf ist häufig rund um den Bach unterwegs.",
-  "nina":"Nina Bellwald arbeitet an der Rezeption.",
-  "bellwald":"Die Familie Bellwald ist regional bekannt.",
-  "martin bellwald":"Martin Bellwald ist politisch aktiv.",
-  "peter":"Peter Jossen war früher Gemeindepolizist.",
-  "jossen":"Peter Jossen kennt alte Abläufe.",
-  "hans":"Hans Burri ist oft bei der Brücke.",
-  "burri":"Hans Burri kennt die Gegend gut.",
-  "fredy":"Fredy Näfen kümmert sich um die Technik auf dem Campingplatz Ganterbach.",
-  "näfen":"Fredy Näfen hilft bei Wartung.",
-  "stefanie":"Stefanie Schnydrig arbeitet im Social-Media-Bereich.",
-  "schnydrig":"Stefanie Schnydrig kennt sich mit Reichweite aus.",
-  "steven":"Steven Amherd lebt zeitweise im Van, selbstständig.",
-  "amherd":"Steven Amherd ist nicht dauerhaft gemeldet."
-};
-
-// ------------------------------
 function add(text,cls){
   const d=document.createElement("div");
   d.className="msg "+cls;
@@ -147,82 +149,158 @@ function add(text,cls){
   if(cls==="polizei") speak(text);
 }
 
-// ------------------------------
-function speak(text){
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang="de-DE";
-
-  const pref=["Markus","Google Deutsch Male","Microsoft Stefan","Microsoft Markus"];
-  const v=voices.find(v=>pref.some(p=>v.name.includes(p)))||voices.find(v=>v.lang.startsWith("de"));
-  if(v) u.voice=v;
-
-  u.pitch=0.4;
-  u.rate=0.65;
-  u.volume=1;
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+function addSilent(text,cls){
+  const d=document.createElement("div");
+  d.className="msg "+cls;
+  d.innerText=text;
+  chat.appendChild(d);
+  chat.scrollTop=chat.scrollHeight;
 }
 
-// ------------------------------
-// Status Handling
-// ------------------------------
-function setStatus(text){
-  status.innerText="Regionalpolizei Ganterbach · "+text;
+function typing(on=true){
+  status.innerText = on
+    ? "Daniel Rieder · tippt …"
+    : "Daniel Rieder · online";
 }
 
-// ------------------------------
-// respond()
-// ------------------------------
+/* =========================
+   BETEILIGTE (JOBS)
+========================= */
+const persons={
+  "thomas":"Thomas G. Brigger war Podcaster mit Fokus Umwelt, Tourismus und Gesellschaft.",
+  "brigger":"Thomas G. Brigger war in der Region sehr präsent.",
+  "doris":"Doris Bayard arbeitet in der Verwaltung des Campingplatzes.",
+  "bayard":"Doris Bayard ist zuständig für Organisation und Abläufe.",
+  "martin nanzer":"Martin Nanzer ist Dauercamper mit handwerklichem Hintergrund.",
+  "nanzer":"Martin Nanzer hält sich oft länger auf dem Platz auf.",
+  "stefanie":"Stefanie Schnydrig arbeitet im Social-Media-Bereich.",
+  "steven":"Steven Amherd ist selbstständig und lebt zeitweise im Van.",
+  "peter":"Peter Jossen war früher Gemeindepolizist.",
+  "jossen":"Peter Jossen kennt Polizeiarbeit von früher.",
+  "tina":"Tina Wolf engagiert sich im Naturschutz.",
+  "fredy":"Fredy Näfen betreut technische Anlagen auf dem Campingplatz.",
+  "näfen":"Fredy Näfen kennt sich mit Strom und Technik aus.",
+  "nina":"Nina Bellwald arbeitet an der Rezeption.",
+  "bellwald":"Nina Bellwald ist erste Anlaufstelle für Gäste.",
+  "hans":"Hans Burri ist in der Region bekannt, oft an der Brücke.",
+  "burri":"Hans Burri lebt zurückgezogen.",
+  "martin bellwald":"Martin Bellwald ist politisch aktiv in der Region."
+};
+
+/* =========================
+   ANTWORTLOGIK (1 PHASE)
+========================= */
 function respond(q){
-  const t=q.toLowerCase();
+  const t = q.toLowerCase();
 
+  /* Forensik / Analyse */
+  if(
+    t.includes("forensik") ||
+    t.includes("analyse") ||
+    t.includes("todesursache") ||
+    t.includes("obduktion") ||
+    t.includes("gerichtsmedizin")
+  ){
+    return "Dazu kann ich hier nichts sagen. Schreibt der Forensik eine E-Mail, die präzisieren das sauber.";
+  }
+
+  /* Personen */
   for(const k in persons){
     if(t.includes(k)){
-      return "Ja, kenn ich. "+persons[k]+" Mehr kann ich im Moment nicht sagen. Laufende Ermittlungen.";
+      return "Ja, kenn ich. "+persons[k]+" Mehr darf ich aktuell nicht sagen. Laufende Ermittlungen.";
     }
   }
 
-  if(t.includes("hallo")||t.includes("hey")) return rand(["Ja hallo.","Gruss."]);
-  if(t.includes("danke")) return rand(["Gern geschehen.","Wir Walliser helfen einander."]);
-  if(t.includes("tschüss")) return rand(["Bis später.","Meld dich, wenn was ist."]);
-  if(t.includes("mord")) return rand(["So weit sind wir offiziell noch nicht.","Findet ihr raus."]);
-  if(t.includes("beweis")) return rand(["Einige Spuren, nichts Sicheres.","Wir sichern erst."]);
-  if(t.includes("wer")) return rand(["Viele waren vor Ort.","Niemand offiziell."]);
-  if(t.includes("wann")||t.includes("zeit")) return rand(["Zeitangaben gehen auseinander."]);
-  if(t.includes("passwort")) return "Das läuft nicht über mich. Schau im Hilfe-Bereich.";
+  /* Fallbezogen */
+  if(t.includes("mord")){
+    return "Offiziell ist das noch nicht bestätigt. Wir bleiben bei den Fakten.";
+  }
 
-  return rand([
-    "Dazu hab ich im Moment nichts Verlässliches.",
-    "Lass uns bei den Fakten bleiben.",
-    "Schreib ich mir auf."
-  ]);
+  if(t.includes("beweis") || t.includes("spur")){
+    return "Es gibt mehrere Spuren. Keine erklärt alles für sich allein.";
+  }
+
+  if(t.includes("verdacht") || t.includes("wer")){
+    return "Viele Menschen, viele Geschichten. Nicht jede passt zusammen.";
+  }
+
+  if(t.includes("wann") || t.includes("zeit")){
+    return "Zeitangaben gehen auseinander. Ferien verzerren Erinnerungen.";
+  }
+
+  if(t.includes("wo") || t.includes("ort") || t.includes("camping")){
+    return "Der Campingplatz ist größer und verwinkelter, als man denkt.";
+  }
+
+  /* Smalltalk */
+  if(t.includes("wie geht") || t.includes("alles klar")){
+    return "Soweit gut. Langer Tag, aber gehört dazu.";
+  }
+
+  if(t.includes("stress") || t.includes("viel los")){
+    return "Sommer, Campingplatz, viele Leute – das erklärt einiges.";
+  }
+
+  if(t.includes("wallis")){
+    return "Im Wallis sind wir eher ruhig. Das hier ist… untypisch.";
+  }
+
+  if(t.includes("kaffee") || t.includes("pause")){
+    return "Ein Kaffee wäre jetzt definitiv angebracht.";
+  }
+
+  if(t.includes("danke")){
+    return "Gern geschehen. Wir Walliser helfen einander.";
+  }
+
+  if(t.includes("tschüss") || t.includes("bis später")){
+    return "Alles klar. Meld dich, wenn was ist.";
+  }
+
+  if(t.includes("hallo") || t.includes("hoi")){
+    return "Hoi. Schreib einfach, ich bin den ganzen Tag erreichbar.";
+  }
+
+  if(t.includes("passwort")){
+    return "Dazu kann ich nichts sagen. Schau im Hilfe-Bereich nach.";
+  }
+
+  /* Fallback */
+  const fallback=[
+    "Dazu hab ich aktuell nichts Belastbares.",
+    "Das klären wir Schritt für Schritt.",
+    "Schreib ich mir gedanklich auf.",
+    "Das gehört eher in den Bericht.",
+    "Im Moment behalten wir den Überblick."
+  ];
+
+  return fallback[Math.floor(Math.random()*fallback.length)];
 }
 
-function rand(a){return a[Math.floor(Math.random()*a.length)];}
-
-// ------------------------------
-// Senden
-// ------------------------------
+/* =========================
+   SENDEN
+========================= */
 function send(){
   const text=input.value.trim();
   if(!text) return;
   input.value="";
   add(text,"user");
-
-  setStatus("tippt…");
+  typing(true);
   setTimeout(()=>{
+    typing(false);
     add(respond(text),"polizei");
-    setStatus("online");
-  },900);
+  },900+Math.random()*1200);
 }
 
-// ------------------------------
-// Automatische Begrüssung
-// ------------------------------
+/* =========================
+   BEGRÜSSUNG (OHNE TON)
+========================= */
 window.onload=()=>{
   setTimeout(()=>{
-    add("Hallo zusammen. Daniel Rieder hier. Ich war als Erster vor Ort beim Campingplatz Ganterbach. Wenn ihr Fragen habt – schreibt einfach.","polizei");
+    addSilent(
+      "Hallo zusammen. Daniel Rieder hier. Ich war als Erster vor Ort beim Campingplatz Ganterbach. Wenn ihr Fragen habt – schreibt einfach.",
+      "polizei"
+    );
   },800);
 };
 </script>
