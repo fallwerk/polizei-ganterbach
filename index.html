@@ -159,8 +159,8 @@ function addSilent(text,cls){
 
 function typing(on=true){
   status.innerText = on
-    ? "Daniel Rieder · tippt …"
-    : "Daniel Rieder · online";
+    ? "              · schreibt…"
+    : "              · online";
 }
 
 /* =========================
@@ -207,7 +207,7 @@ function respond(q){
   /* Personen */
   for(const k in persons){
     if(t.includes(k)){
-      return "Ja, kenn ich. "+persons[k]+" Mehr darf ich aktuell nicht sagen. Laufende Ermittlungen.";
+      return "Ja, kenn ich. "+persons[k]+"Mehr weiss ich nicht. Jetzt ist es euer Job hier mehr zu finden.";
     }
   }
 
@@ -261,8 +261,16 @@ function respond(q){
     return "Hoi. Schreib einfach, ich bin den ganzen Tag erreichbar.";
   }
 
+  if(t.includes("wetter")){
+    return "Wenn das Wetter nicht umschlägt, bleibt es so. Und im Wallis ist immer schön.";
+  }
+  
+  if(t.includes("Radar")){
+    return "Es gab in der Nähe eine Geschwindigkeitskontrolle. Fotos solltet ihr eigentlich finden.";
+  }
+  
   if(t.includes("passwort")){
-    return "Dazu kann ich nichts sagen. Schau im Hilfe-Bereich nach.";
+    return "Dazu kann ich nichts sagen. Schau im Hilfe-Bereich der Polizei Webseite nach.";
   }
 
   /* Fallback */
